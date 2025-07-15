@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: telegram-bot-db
+    environment:
+      POSTGRES_DB: telegram_bot_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - telegram-bot-network
+
+  # Spring Boot Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram-bot-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database configuration
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/telegram_bot_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres123
+      
+      # JPA configuration
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      
+      # JWT configuration
+      JWT_SECRET: ${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      
+      # Telegram Bot configuration
+      TELEGRAM_BOT_USERNAME: chat_testt_bot
+      TELEGRAM_BOT_TOKEN: 8167628789:AAHX0UQrP7YiTaw-xvoexQCIPimyJUMO-pk
+      TELEGRAM_BOT_WEBHOOK_PATH: /webhook
+      
+      # Spring profiles
+      SPRING_PROFILES_ACTIVE: docker
+      
+      # Logging
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_TELERGAMBOT: DEBUG
+    ports:
+      - "8080:8080"
+    networks:
+      - telegram-bot-network
+    restart: unless-stopped
+
+  # Nginx reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: telegram-bot-nginx
+    depends_on:
+      - app
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    networks:
+      - telegram-bot-network
+    profiles:
+      - with-nginx
+
+networks:
+  telegram-bot-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

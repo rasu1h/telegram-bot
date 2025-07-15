@@ -1,0 +1,47 @@
+### Swagger UI Access
+# Open in browser: http://localhost:8080/swagger-ui.html
+
+### Get OpenAPI JSON
+GET http://localhost:8080/api-docs
+Accept: application/json
+
+### Get OpenAPI YAML  
+GET http://localhost:8080/api-docs.yaml
+Accept: application/vnd.oai.openapi
+
+### Example: Register new user via Swagger-generated request
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "swaggeruser",
+  "password": "password123",
+  "email": "swagger@example.com",
+  "name": "Swagger User"
+}
+
+### Example: Login and get token
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "swaggeruser",
+  "password": "password123"
+}
+
+### Example: Generate Telegram token (requires JWT)
+POST http://localhost:8080/api/telegram/token/generate
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### Example: Send message to Telegram (requires JWT and bound token)
+POST http://localhost:8080/api/telegram/message/send
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "message": "Hello from Swagger!"
+}
+
+### Example: Get message history (requires JWT)
+GET http://localhost:8080/api/telegram/messages
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
